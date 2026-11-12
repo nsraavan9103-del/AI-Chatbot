@@ -1,8 +1,17 @@
 # Ignore everything by default
 /*
-
 # Except these core project files
 !/README.md
 !/main.py
 !/requirements.txt
-!/.gitignore
+!/.gitignore
+!/AGENTS.md
+!/.env.example
+!/backend/
+!/frontend/
+/data/
+backend/.env
+**/__pycache__/
+**/.pytest_cache/
+frontend/node_modules/
+frontend/dist/

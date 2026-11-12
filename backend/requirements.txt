@@ -1,0 +1,16 @@
+# Already present in ../.venv; this file is documentation, not an install script.
+fastapi==0.162.5
+uvicorn==0.37.0
+python-multipart==0.0.33
+pydantic==2.11.9
+pydantic-settings==2.11.0
+python-dotenv==1.1.1
+openai==1.109.1
+httpx==0.28.1
+sentence-transformers==5.1.1
+transformers==4.56.2
+torch==2.8.0
+numpy==2.3.3
+PyMuPDF==1.26.4
+python-docx==1.2.0
+pytest==9.2.0
