@@ -60,3 +60,8 @@ def test_derive_mode_general_without_citations():
 
 def test_derive_mode_general_when_no_sources():
     assert derive_mode("[1] yes", 0) == "general"
+
+
+def test_derive_mode_accepts_fullwidth_brackets():
+    assert derive_mode("Oil prices rose to $100【1】.", 2) == "documents"
+    assert derive_mode("Oil prices rose to $100［1］.", 2) == "documents"

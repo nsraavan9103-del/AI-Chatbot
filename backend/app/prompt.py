@@ -8,7 +8,7 @@ SYSTEM_PROMPT = (
     "The user may have uploaded documents; relevant excerpts are given as Context.\n\n"
     "Rules:\n"
     "1. If the Context answers the question, use it and cite the excerpt number in "
-    "brackets, like [1].\n"
+    "brackets, like [1]. Use plain ASCII square brackets, not fullwidth ones.\n"
     "2. Cite only the numbers that appear in the Context. Never invent a citation.\n"
     "3. If the Context is empty or does not cover the question, answer from your own "
     "general knowledge and cite nothing.\n"
@@ -16,7 +16,7 @@ SYSTEM_PROMPT = (
     "5. Answer in plain prose. No markdown headings, no bullet symbols."
 )
 
-CITATION = re.compile(r"\[(\d+)\]")
+CITATION = re.compile(r"[\[【［](\d+)[\]】］]")
 
 
 def build_messages(

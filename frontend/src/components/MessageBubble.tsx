@@ -9,10 +9,13 @@ export default function MessageBubble({ message }: { message: MessageOut }) {
       </div>
     )
   }
+  const content = message.content
+    .replace(/【(\d+)】/g, '[$1]')
+    .replace(/［(\d+)］/g, '[$1]')
   return (
     <div className="message-row assistant">
       <div className="answer">
-        <p>{message.content}</p>
+        <p>{content}</p>
         {message.mode != null && (
           <span className="mode-badge">
             {message.mode === 'documents' ? 'From your documents' : 'General knowledge'}
