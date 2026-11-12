@@ -5,7 +5,6 @@
 !/main.py
 !/requirements.txt
 !/.gitignore
-!/AGENTS.md
 !/.env.example
 !/backend/
 !/frontend/
