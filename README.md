@@ -9,8 +9,8 @@ A file-upload RAG chatbot: FastAPI + SQLite on the back, React on the front, Gro
 
 **Prerequisites:** the checked-in `.venv` (Python 3.13.5), Node 26 / npm 11, and a Groq API key.
 
-1. **Add the key** — create one at [console.groq.com/keys](https://console.groq.com/keys) and put it in the root `.env` (copy `.env.example` as a starting point):
-   ```bash
+1. **Add the key** — create one at [console.groq.com/keys](https://console.groq.com/keys) and put it in the root `.env` (copy `.env.example` to `.env` first):
+   ```dotenv
    GROQ_API_KEY=your_key_here
    ```
    Without a key the API still boots; asking a question returns an `error` event instead of an answer.
