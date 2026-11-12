@@ -1,0 +1,8 @@
+# Ignore everything by default
+/*
+
+# Except these core project files
+!/README.md
+!/main.py
+!/requirements.txt
+!/.gitignore
