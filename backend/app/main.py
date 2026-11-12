@@ -9,7 +9,7 @@ from app.config import Settings, get_settings
 from app.db import init_db
 from app.embeddings import Embedder
 from app.llm import stream_answer
-from app.routes import documents
+from app.routes import chats, documents
 
 logger = logging.getLogger(__name__)
 
@@ -45,4 +45,5 @@ def create_app(settings: Settings | None = None, *, embedder=None, llm_stream=No
         return {"status": "ok", "llm_configured": bool(settings.groq_api_key)}
 
     app.include_router(documents.router, prefix="/api")
+    app.include_router(chats.router, prefix="/api")
     return app
