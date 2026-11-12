@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, HTTPException, Request, Response, 
 from app.chunking import chunk_text
 from app.deps import get_db
 from app.embeddings import encode_vector
-from app.extraction import EmptyDocument, UnsupportedFileType, extract_text
+from app.extraction import extract_text
 from app.schemas import DocumentOut
 
 router = APIRouter()
@@ -67,7 +67,7 @@ def upload_documents(
                 "SELECT * FROM documents WHERE id = ?", (document_id,)
             ).fetchone()
             documents.append(DocumentOut(**dict(row)))
-        except (UnsupportedFileType, EmptyDocument, ValueError) as exc:
+        except Exception as exc:
             conn.rollback()
             errors.append({"filename": filename, "error": str(exc)})
 

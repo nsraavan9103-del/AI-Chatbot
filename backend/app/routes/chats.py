@@ -136,6 +136,7 @@ def create_message(chat_id: int, payload: MessageCreate, request: Request):
 
     def generate():
         conn = connect(db_path)
+        sources_sent = False
         try:
             conn.execute(
                 "INSERT INTO messages (chat_id, role, content) VALUES (?, 'user', ?)",
@@ -171,6 +172,7 @@ def create_message(chat_id: int, payload: MessageCreate, request: Request):
                     ]
                 },
             )
+            sources_sent = True
 
             has_chunks = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0] > 0
             if not has_chunks:
@@ -187,6 +189,8 @@ def create_message(chat_id: int, payload: MessageCreate, request: Request):
             yield sse("done", {"message_id": message_id})
         except Exception as exc:
             conn.rollback()
+            if not sources_sent:
+                yield sse("sources", {"sources": []})
             yield sse("error", {"message": str(exc)})
         finally:
             conn.close()

@@ -1,3 +1,6 @@
+import json
+
+import numpy as np
 import pytest
 from fastapi.testclient import TestClient
 
@@ -89,6 +92,57 @@ def test_llm_error_emits_error_and_persists_no_assistant_message(
     assert "boom" in body
     messages = client.get(f"/api/chats/{chat['id']}/messages").json()
     assert [m["role"] for m in messages] == ["user"]
+
+
+def test_embed_failure_emits_sources_then_error(settings):
+    class BrokenEmbedder:
+        def embed_documents(self, texts):
+            return np.zeros((len(texts), 4), dtype=np.float32)
+
+        def embed_query(self, text):
+            raise RuntimeError("embed failed")
+
+    client = TestClient(
+        create_app(settings, embedder=BrokenEmbedder(), llm_stream=lambda m: iter(["x"]))
+    )
+    _upload(client)
+    chat = _chat(client)
+    body = _send(client, chat["id"])
+    assert body.index("event: sources") < body.index("event: error")
+    assert "embed failed" in body
+
+
+def _sse_events(body):
+    events = {}
+    for block in body.split("\n\n"):
+        lines = [line for line in block.split("\n") if line]
+        if not lines:
+            continue
+        name = lines[0].split(": ", 1)[1]
+        events.setdefault(name, []).append(json.loads(lines[1].split(": ", 1)[1]))
+    return events
+
+
+def test_snippet_is_truncated_to_300_chars(client):
+    _upload(client, data=("x" * 400).encode())
+    chat = _chat(client)
+    body = _send(client, chat["id"])
+    sse_sources = _sse_events(body)["sources"][0]["sources"]
+    assert len(sse_sources[0]["snippet"]) == 300
+    messages = client.get(f"/api/chats/{chat['id']}/messages").json()
+    assert len(messages[1]["sources"][0]["snippet"]) == 300
+
+
+def test_sse_response_headers(client):
+    _upload(client)
+    chat = _chat(client)
+    with client.stream(
+        "POST", f"/api/chats/{chat['id']}/messages", json={"content": "hi"}
+    ) as response:
+        assert response.headers["content-type"].startswith("text/event-stream")
+        assert response.headers["cache-control"] == "no-cache"
+        assert response.headers["x-accel-buffering"] == "no"
+        "".join(response.iter_text())
 
 
 def test_unknown_chat_is_404(client):

@@ -40,6 +40,22 @@ def test_upload_multiple_files_partial_failure(client):
     assert body["errors"][0]["filename"] == "bad.csv"
 
 
+def test_corrupt_pdf_is_an_error_entry_not_a_500(client):
+    response = client.post(
+        "/api/documents",
+        files={"files": ("broken.pdf", b"not a pdf", "application/pdf")},
+    )
+    assert response.status_code == 201
+    body = response.json()
+    assert body["documents"] == []
+    assert len(body["errors"]) == 1
+    assert body["errors"][0]["filename"] == "broken.pdf"
+
+
+def test_upload_without_files_is_422(client):
+    assert client.post("/api/documents").status_code == 422
+
+
 def test_upload_oversized_file_is_rejected(client, settings):
     settings.max_upload_mb = 0
     response = _upload(client, "big.txt", b"hello")
