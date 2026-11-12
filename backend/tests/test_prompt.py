@@ -1,4 +1,4 @@
-from app.prompt import SYSTEM_PROMPT, build_messages
+from app.prompt import SYSTEM_PROMPT, build_messages, derive_mode
 from app.retrieval import Hit
 
 
@@ -23,5 +23,40 @@ def test_prompt_empty_hits_still_builds_messages():
     assert "No context available." in messages[1]["content"]
 
 
-def test_prompt_instructs_dont_know():
-    assert "I don't know based on the uploaded documents." in SYSTEM_PROMPT
+def test_prompt_allows_general_knowledge():
+    assert "answer from your own general knowledge" in SYSTEM_PROMPT
+    assert "Cite only the numbers that appear in the Context" in SYSTEM_PROMPT
+    assert "I don't know based on the uploaded documents." not in SYSTEM_PROMPT
+
+
+def test_build_messages_places_history_between_system_and_question():
+    history = [
+        {"role": "user", "content": "first question"},
+        {"role": "assistant", "content": "first answer"},
+    ]
+    messages = build_messages("second question", [_hit()], history)
+    assert messages[0]["role"] == "system"
+    assert messages[1:3] == history
+    assert messages[-1]["role"] == "user"
+    assert "second question" in messages[-1]["content"]
+    assert len(messages) == 4
+
+
+def test_build_messages_without_history_is_two_messages():
+    assert len(build_messages("q", [_hit()])) == 2
+
+
+def test_derive_mode_documents_when_citing_supplied_source():
+    assert derive_mode("[1] yes", 2) == "documents"
+
+
+def test_derive_mode_general_when_citation_out_of_range():
+    assert derive_mode("[7] yes", 2) == "general"
+
+
+def test_derive_mode_general_without_citations():
+    assert derive_mode("Paris is the capital.", 2) == "general"
+
+
+def test_derive_mode_general_when_no_sources():
+    assert derive_mode("[1] yes", 0) == "general"

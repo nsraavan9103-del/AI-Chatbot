@@ -34,3 +34,4 @@ class MessageOut(BaseModel):
     content: str
     created_at: str
     sources: list[SourceOut]
+    mode: str | None = None

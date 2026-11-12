@@ -7,13 +7,12 @@ from pydantic import BaseModel, Field
 
 from app.db import connect
 from app.deps import get_db
-from app.prompt import build_messages
+from app.prompt import build_messages, derive_mode
 from app.retrieval import search
 from app.schemas import ChatOut, MessageOut, SourceOut
 
 router = APIRouter()
 
-CANNED_EMPTY_REPLY = "I don't have any documents yet — upload one first."
 SNIPPET_CHARS = 300
 
 
@@ -33,10 +32,11 @@ def _chat_row(conn: sqlite3.Connection, chat_id: int):
     ).fetchone()
 
 
-def _save_assistant(conn, chat_id: int, content: str, hits) -> int:
+def _save_assistant(conn, chat_id: int, content: str, hits, mode: str) -> int:
     cursor = conn.execute(
-        "INSERT INTO messages (chat_id, role, content) VALUES (?, 'assistant', ?)",
-        (chat_id, content),
+        "INSERT INTO messages (chat_id, role, content, mode)"
+        " VALUES (?, 'assistant', ?, ?)",
+        (chat_id, content, mode),
     )
     message_id = cursor.lastrowid
     conn.executemany(
@@ -101,6 +101,7 @@ def list_messages(chat_id: int, conn: sqlite3.Connection = Depends(get_db)):
                 role=row["role"],
                 content=row["content"],
                 created_at=row["created_at"],
+                mode=row["mode"],
                 sources=[
                     SourceOut(
                         chunk_id=source["chunk_id"],
@@ -138,6 +139,16 @@ def create_message(chat_id: int, payload: MessageCreate, request: Request):
         conn = connect(db_path)
         sources_sent = False
         try:
+            history = [
+                {"role": row["role"], "content": row["content"]}
+                for row in reversed(
+                    conn.execute(
+                        "SELECT role, content FROM messages WHERE chat_id = ?"
+                        " ORDER BY id DESC LIMIT ?",
+                        (chat_id, settings.history_limit),
+                    ).fetchall()
+                )
+            ]
             conn.execute(
                 "INSERT INTO messages (chat_id, role, content) VALUES (?, 'user', ?)",
                 (chat_id, payload.content),
@@ -174,18 +185,15 @@ def create_message(chat_id: int, payload: MessageCreate, request: Request):
             )
             sources_sent = True
 
-            has_chunks = conn.execute("SELECT COUNT(*) FROM chunks").fetchone()[0] > 0
-            if not has_chunks:
-                message_id = _save_assistant(conn, chat_id, CANNED_EMPTY_REPLY, [])
-                yield sse("token", {"text": CANNED_EMPTY_REPLY})
-                yield sse("done", {"message_id": message_id})
-                return
-
             collected = []
-            for token in llm_stream(build_messages(payload.content, hits)):
+            for token in llm_stream(build_messages(payload.content, hits, history)):
                 collected.append(token)
                 yield sse("token", {"text": token})
-            message_id = _save_assistant(conn, chat_id, "".join(collected), hits)
+            text = "".join(collected)
+            mode = derive_mode(text, len(hits))
+            message_id = _save_assistant(
+                conn, chat_id, text, hits if mode == "documents" else [], mode
+            )
             yield sse("done", {"message_id": message_id})
         except Exception as exc:
             conn.rollback()

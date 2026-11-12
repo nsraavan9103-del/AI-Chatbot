@@ -55,3 +55,46 @@ def test_settings_defaults_from_code_not_env():
     assert settings.top_k == 5
     assert settings.max_upload_mb == 10
     assert settings.max_chunks_per_document == 2000
+    assert settings.history_limit == 10
+
+
+def test_init_db_creates_mode_column_on_new_db(tmp_path):
+    db_path = tmp_path / "test.db"
+    init_db(db_path)
+    with sqlite3.connect(db_path) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(messages)")}
+    assert "mode" in columns
+
+
+def test_init_db_adds_mode_column_to_existing_db(tmp_path):
+    db_path = tmp_path / "old.db"
+    conn = sqlite3.connect(db_path)
+    conn.executescript(
+        """
+        CREATE TABLE chats (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          title TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        CREATE TABLE messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
+          role TEXT NOT NULL CHECK (role IN ('user','assistant')),
+          content TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        );
+        INSERT INTO chats (title) VALUES ('old chat');
+        INSERT INTO messages (chat_id, role, content) VALUES (1, 'assistant', 'old answer');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    init_db(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(messages)")}
+        mode = conn.execute("SELECT mode FROM messages").fetchone()[0]
+    assert "mode" in columns
+    assert mode is None

@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     top_k: int = 5
     max_upload_mb: int = 10
     max_chunks_per_document: int = 2000
+    history_limit: int = 10
     db_path: Path = BASE_DIR / "data" / "app.db"
 
 

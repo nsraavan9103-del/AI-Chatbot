@@ -30,7 +30,8 @@ CREATE TABLE IF NOT EXISTS messages (
   chat_id INTEGER NOT NULL REFERENCES chats(id) ON DELETE CASCADE,
   role TEXT NOT NULL CHECK (role IN ('user','assistant')),
   content TEXT NOT NULL,
-  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  mode TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_messages_chat ON messages(chat_id, id);
 CREATE TABLE IF NOT EXISTS message_sources (
@@ -57,6 +58,9 @@ def init_db(db_path: Path) -> None:
     try:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.executescript(SCHEMA)
+        columns = {row[1] for row in conn.execute("PRAGMA table_info(messages)")}
+        if "mode" not in columns:
+            conn.execute("ALTER TABLE messages ADD COLUMN mode TEXT")
         conn.commit()
     finally:
         conn.close()

@@ -43,15 +43,23 @@ def test_sse_event_order_and_payload(client):
     assert "Hello" in body
 
 
-def test_assistant_message_persisted_with_sources(client):
+def test_assistant_message_persisted_with_sources(settings, fake_embedder):
+    client = TestClient(
+        create_app(
+            settings,
+            embedder=fake_embedder,
+            llm_stream=lambda m: iter(["According to [1], it is 4.2 million."]),
+        )
+    )
     _upload(client)
     chat = _chat(client)
     _send(client, chat["id"])
     messages = client.get(f"/api/chats/{chat['id']}/messages").json()
     assert [m["role"] for m in messages] == ["user", "assistant"]
-    assert messages[1]["content"] == "Hello world"
+    assert messages[1]["content"] == "According to [1], it is 4.2 million."
     assert len(messages[1]["sources"]) >= 1
     assert messages[1]["sources"][0]["filename"] == "a.txt"
+    assert messages[1]["mode"] == "documents"
 
 
 def test_first_message_titles_the_chat(client):
@@ -61,21 +69,80 @@ def test_first_message_titles_the_chat(client):
     assert client.get("/api/chats").json()[0]["title"] == "What is the main claim of this article?"
 
 
-def test_empty_library_returns_canned_reply_and_skips_llm(
-    settings, fake_embedder
-):
+def test_empty_library_answers_from_general_knowledge(settings, fake_embedder):
     calls = []
 
     def recording_stream(messages):
         calls.append(messages)
-        return iter(["should not happen"])
+        return iter(["Paris is the capital of France."])
 
     client = TestClient(create_app(settings, embedder=fake_embedder, llm_stream=recording_stream))
     chat = _chat(client)
     body = _send(client, chat["id"])
-    assert "I don't have any documents yet" in body
+    assert len(calls) == 1
+    assert "event: sources" in body
+    assert "event: token" in body
     assert "event: done" in body
-    assert calls == []
+    messages = client.get(f"/api/chats/{chat['id']}/messages").json()
+    assert messages[1]["mode"] == "general"
+    assert messages[1]["sources"] == []
+
+
+def test_document_answer_is_labelled_documents(settings, fake_embedder):
+    client = TestClient(
+        create_app(
+            settings,
+            embedder=fake_embedder,
+            llm_stream=lambda m: iter(["According to [1], it is 4.2 million."]),
+        )
+    )
+    _upload(client)
+    chat = _chat(client)
+    _send(client, chat["id"])
+    messages = client.get(f"/api/chats/{chat['id']}/messages").json()
+    assert messages[1]["mode"] == "documents"
+    assert messages[1]["sources"] != []
+
+
+def test_general_answer_is_labelled_general(settings, fake_embedder):
+    client = TestClient(
+        create_app(settings, embedder=fake_embedder, llm_stream=lambda m: iter(["Hello", " world"]))
+    )
+    _upload(client)
+    chat = _chat(client)
+    _send(client, chat["id"])
+    messages = client.get(f"/api/chats/{chat['id']}/messages").json()
+    assert messages[1]["mode"] == "general"
+    assert messages[1]["sources"] == []
+
+
+def test_follow_up_includes_prior_turns(settings, fake_embedder):
+    calls = []
+
+    def recording_stream(messages):
+        calls.append(messages)
+        return iter(["first answer"])
+
+    client = TestClient(create_app(settings, embedder=fake_embedder, llm_stream=recording_stream))
+    _upload(client)
+    chat = _chat(client)
+    _send(client, chat["id"], "first question")
+    _send(client, chat["id"], "and the second one?")
+    assert len(calls) == 2
+    second = calls[1]
+    assert second[0]["role"] == "system"
+    assert [m["role"] for m in second] == ["system", "user", "assistant", "user"]
+    assert second[1]["content"] == "first question"
+    assert second[2]["content"] == "first answer"
+    assert "and the second one?" in second[3]["content"]
+
+
+def test_user_messages_have_null_mode(client):
+    _upload(client)
+    chat = _chat(client)
+    _send(client, chat["id"])
+    messages = client.get(f"/api/chats/{chat['id']}/messages").json()
+    assert messages[0]["mode"] is None
 
 
 def test_llm_error_emits_error_and_persists_no_assistant_message(
@@ -123,7 +190,14 @@ def _sse_events(body):
     return events
 
 
-def test_snippet_is_truncated_to_300_chars(client):
+def test_snippet_is_truncated_to_300_chars(settings, fake_embedder):
+    client = TestClient(
+        create_app(
+            settings,
+            embedder=fake_embedder,
+            llm_stream=lambda m: iter(["According to [1], yes."]),
+        )
+    )
     _upload(client, data=("x" * 400).encode())
     chat = _chat(client)
     body = _send(client, chat["id"])
@@ -154,13 +228,21 @@ def test_empty_message_is_422(client):
     assert client.post(f"/api/chats/{chat['id']}/messages", json={"content": ""}).status_code == 422
 
 
-def test_old_cited_answer_survives_document_delete(client):
+def test_old_cited_answer_survives_document_delete(settings, fake_embedder):
+    client = TestClient(
+        create_app(
+            settings,
+            embedder=fake_embedder,
+            llm_stream=lambda m: iter(["According to [1], it is 4.2 million."]),
+        )
+    )
     document_id = _upload(client).json()["documents"][0]["id"]
     chat = _chat(client)
     _send(client, chat["id"])
+    assert client.get(f"/api/chats/{chat['id']}/messages").json()[1]["sources"] != []
     assert client.delete(f"/api/documents/{document_id}").status_code == 204
     messages = client.get(f"/api/chats/{chat['id']}/messages").json()
-    assert messages[1]["content"] == "Hello world"
+    assert messages[1]["content"] == "According to [1], it is 4.2 million."
     assert messages[1]["sources"] == []
 
 
