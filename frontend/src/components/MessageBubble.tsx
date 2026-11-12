@@ -13,7 +13,12 @@ export default function MessageBubble({ message }: { message: MessageOut }) {
     <div className="message-row assistant">
       <div className="answer">
         <p>{message.content}</p>
-        <Sources sources={message.sources} />
+        {message.mode != null && (
+          <span className="mode-badge">
+            {message.mode === 'documents' ? 'From your documents' : 'General knowledge'}
+          </span>
+        )}
+        {message.mode !== 'general' && <Sources sources={message.sources} />}
       </div>
     </div>
   )

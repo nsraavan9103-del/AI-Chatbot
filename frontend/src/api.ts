@@ -26,12 +26,15 @@ export type SourceOut = {
   score: number
 }
 
+export type MessageMode = 'documents' | 'general'
+
 export type MessageOut = {
   id: number
   role: 'user' | 'assistant'
   content: string
   created_at: string
   sources: SourceOut[]
+  mode: MessageMode | null
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

@@ -55,8 +55,8 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
     const now = new Date().toISOString()
     setMessages((prev) => [
       ...prev,
-      { id: userId, role: 'user', content, created_at: now, sources: [] },
-      { id: assistantId, role: 'assistant', content: '', created_at: now, sources: [] },
+      { id: userId, role: 'user', content, created_at: now, sources: [], mode: null },
+      { id: assistantId, role: 'assistant', content: '', created_at: now, sources: [], mode: null },
     ])
     setStreaming(true)
 
@@ -136,7 +136,7 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
         )}
         {chatId !== null && loading && <p className="muted centre">Loading messages…</p>}
         {chatId !== null && !loading && messages.length === 0 && (
-          <p className="muted centre">No messages yet. Ask a question about your documents.</p>
+          <p className="muted centre">No messages yet. Ask anything — about your documents or anything else.</p>
         )}
         {messages.map((m) => (
           <MessageBubble key={m.id} message={m} />
