@@ -7,7 +7,14 @@ A powerful, user-friendly news research tool designed for effortless information
 
 A file-upload RAG chatbot: FastAPI + SQLite on the back, React on the front, Groq for answers, local MiniLM embeddings for retrieval. The legacy Streamlit app below is untouched and still runs.
 
-**Prerequisites:** the checked-in `.venv` (Python 3.13.5), Node 26 / npm 11, and a Groq API key.
+**Prerequisites:** Python 3.13, Node 26 / npm 11, and a Groq API key.
+
+0. **Install the backend dependencies** (from a fresh clone):
+   ```bash
+   python -m venv .venv
+   .venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+   ```
+   On macOS/Linux the interpreter is `.venv/bin/python` instead of `.venv/Scripts/python.exe`. `backend/requirements.txt` pins the versions the app was built and tested against.
 
 1. **Add the key** — create one at [console.groq.com/keys](https://console.groq.com/keys) and put it in the root `.env` (copy `.env.example` to `.env` first):
    ```dotenv

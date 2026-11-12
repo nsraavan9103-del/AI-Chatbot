@@ -1,4 +1,5 @@
-# Already present in ../.venv; this file is documentation, not an install script.
+# Runtime set for the FastAPI backend, pinned to the versions it was built and tested against.
+# Install into a fresh virtualenv: python -m pip install -r backend/requirements.txt
 fastapi==0.162.5
 uvicorn==0.37.0
 python-multipart==0.0.33
