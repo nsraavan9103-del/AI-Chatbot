@@ -4,7 +4,7 @@
 
 Single-file Streamlit app (`main.py`, ~245 lines). Ingestion: news URLs via newspaper3k, PDFs via PyMuPDF (`fitz`), DOCX via python-docx. Each source becomes one LangChain `Document`; a `RecursiveCharacterTextSplitter` (chunk 1000 / overlap 100) fills `st.session_state.chunks`, but nothing reads it. Q&A (`load_qa_chain`, `stuff`) and summaries (`load_summarize_chain`, `stuff`) loop over whole articles one at a time. Model: local `google/flan-t5-large` on CPU (`device=-1`, `max_length=600`), loaded once via `@st.cache_resource`. Analytics: TextBlob polarity and a word-frequency `Counter`, rendered with matplotlib. No persistence, retrieval, embeddings, or vector store.
 
-The planned replacement — a Groq + FastAPI + SQLite + React RAG chatbot in `backend/` and `frontend/` — is specified in `.opencode/plans/2026-11-12-groq-rag-chatbot.md`. Until it lands, `main.py` is the only running app.
+The new app is a Groq + FastAPI + SQLite + React RAG chatbot in `backend/` and `frontend/`. Backend: FastAPI factory `create_app` (`backend/app/main.py`), SQLite at `data/app.db`, local MiniLM embeddings, Groq chat through the already-installed `openai` SDK. Frontend: Vite + React + TypeScript SPA. Run the API with `.venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --app-dir backend --port 8000` and the UI with `npm run dev` from `frontend/` (Vite proxies `/api` to `127.0.0.1:8000`). Backend tests: `../.venv/Scripts/python.exe -m pytest -q` from `backend/`. `data/app.db` is disposable — delete it to reset. `main.py` is the legacy Streamlit app and still runs.
 
 ## Context — read this first
 
@@ -127,6 +127,9 @@ Run from the repo root. `.venv/Scripts/python.exe` (Python 3.13.5) is the app's 
   .venv/Scripts/python.exe -m pip install "streamlit==1.50.0" "langchain==0.3.27" "langchain-community==0.3.30" "langchain-core==0.3.76" "transformers==4.56.2" "torch==2.8.0" "textblob==0.19.0" "matplotlib==3.10.6" "newspaper3k==0.2.8" "python-docx==1.2.0" "PyMuPDF==1.26.4"
   .venv/Scripts/python.exe -m pip check   # -> No broken requirements found.
   ```
+- **Backend dev** — `.venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --app-dir backend --port 8000`; `curl -s localhost:8000/api/health`. Add `--reload` while editing. `create_app` is the only entry; never add a module-level `app`.
+- **Backend test** — from `backend/`: `../.venv/Scripts/python.exe -m pytest -q` and `../.venv/Scripts/python.exe -m pip check`. Tests are offline: no Groq call, no model download.
+- **Frontend** — from `frontend/`: `npm install` once, `npm run dev` (http://localhost:5173), `npm run build` (`tsc -b` + `vite build`), `npm run lint` (oxlint).
 - **Dev** — `.venv/Scripts/python.exe -m streamlit run main.py`. Add `--server.headless true --server.port 8599` for agent runs; `GET /_stcore/health` returns `ok` when ready. Never call `.venv/Scripts/streamlit.exe`: it exits 1 with no output.
 - **Build** — none; single-file Python, no packaging step. Quick syntax check: `.venv/Scripts/python.exe -m compileall -q main.py`.
 - **Test** — no suite, linter, typecheck, or CI. Smoke-test all three pages with Streamlit's `AppTest` (no model download):

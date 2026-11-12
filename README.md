@@ -3,6 +3,36 @@
 
 A powerful, user-friendly news research tool designed for effortless information retrieval and analysis. Ingest articles from URLs or upload local documents (PDF/DOCX) to ask questions, generate summaries, and visualize data trends.
 
+## New app (React + FastAPI + Groq)
+
+A file-upload RAG chatbot: FastAPI + SQLite on the back, React on the front, Groq for answers, local MiniLM embeddings for retrieval. The legacy Streamlit app below is untouched and still runs.
+
+**Prerequisites:** the checked-in `.venv` (Python 3.13.5), Node 26 / npm 11, and a Groq API key.
+
+1. **Add the key** — create one at [console.groq.com/keys](https://console.groq.com/keys) and put it in the root `.env` (copy `.env.example` as a starting point):
+   ```bash
+   GROQ_API_KEY=your_key_here
+   ```
+   Without a key the API still boots; asking a question returns an `error` event instead of an answer.
+
+2. **Run the backend** (from the repo root):
+   ```bash
+   .venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --app-dir backend --port 8000
+   ```
+
+3. **Run the frontend** (in a second terminal):
+   ```bash
+   cd frontend
+   npm install   # first run only
+   npm run dev   # http://localhost:5173
+   ```
+
+**Architecture:** the browser talks to the Vite dev server, which proxies `/api` to FastAPI. Uploads are extracted (PDF/DOCX/TXT/MD), chunked, embedded locally with `all-MiniLM-L6-v2`, and stored in SQLite at `data/app.db`. A question is embedded, cosine-ranked against every chunk with NumPy, and the top chunks go to Groq through the `openai` SDK; the answer streams back over SSE with numbered citations. The first upload downloads ~90 MB of MiniLM once, and `sentence-transformers` makes the first request slow while it loads. `data/app.db` is disposable — delete it to reset, and re-upload after changing the embedding model. Backend tests: `cd backend && ../.venv/Scripts/python.exe -m pytest -q`.
+
+## Legacy Streamlit app
+
+The sections below describe `main.py`, the original single-file Streamlit app.
+
 ## 🚀 Features
 
 - **Multi-Source Ingestion**: Fetch articles directly from URLs or upload local PDF and DOCX files.
