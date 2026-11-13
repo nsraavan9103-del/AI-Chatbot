@@ -15,7 +15,7 @@ knowledge and labelled as such.
 
 ## Stack
 
-FastAPI + SQLite on the backend, React + TypeScript + Vite on the frontend, Groq for
+FastAPI + SQLite on the backend, React + Vite on the frontend, Groq for
 generation, and `all-MiniLM-L6-v2` running locally for embeddings.
 
 ## Setup
