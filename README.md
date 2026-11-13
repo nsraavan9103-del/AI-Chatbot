@@ -1,101 +1,79 @@
+# AI-Chatbot
 
-# 📰 News Research Chatbot + Analytics Dashboard
+Upload your documents and ask questions. Answers that come from your files cite the
+passage they came from; questions your files cannot answer are answered from general
+knowledge and labelled as such.
 
-A powerful, user-friendly news research tool designed for effortless information retrieval and analysis. Ingest articles from URLs or upload local documents (PDF/DOCX) to ask questions, generate summaries, and visualize data trends.
+## Features
 
-## New app (React + FastAPI + Groq)
+- Upload PDF, DOCX, TXT and Markdown; each file is extracted, chunked and embedded locally.
+- Answers cite their sources as `[1]`, `[2]`, with a Sources panel listing filename, part and score.
+- Questions your documents do not cover are answered from general knowledge, labelled `General knowledge`.
+- Follow-up questions work: the last 10 messages of the chat are sent as context.
+- Answers stream token by token over SSE.
+- Everything persists in SQLite. Single local user, no accounts.
 
-A file-upload RAG chatbot: FastAPI + SQLite on the back, React on the front, Groq for answers, local MiniLM embeddings for retrieval. The legacy Streamlit app below is untouched and still runs.
+## Stack
 
-**Prerequisites:** Python 3.13, Node 26 / npm 11, and a Groq API key.
+FastAPI + SQLite on the backend, React + TypeScript + Vite on the frontend, Groq for
+generation, and `all-MiniLM-L6-v2` running locally for embeddings.
 
-0. **Install the backend dependencies** (from a fresh clone):
-   ```bash
-   python -m venv .venv
-   .venv/Scripts/python.exe -m pip install -r backend/requirements.txt
-   ```
-   On macOS/Linux the interpreter is `.venv/bin/python` instead of `.venv/Scripts/python.exe`. `backend/requirements.txt` pins the versions the app was built and tested against.
+## Setup
 
-1. **Add the key** — create one at [console.groq.com/keys](https://console.groq.com/keys) and put it in the root `.env` (copy `.env.example` to `.env` first):
-   ```dotenv
-   GROQ_API_KEY=your_key_here
-   ```
-   Without a key the API still boots; asking a question returns an `error` event instead of an answer.
+Requires Python 3.13, Node 26 / npm 11, and a Groq API key.
 
-2. **Run the backend** (from the repo root):
-   ```bash
-   .venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --app-dir backend --port 8000
-   ```
+```bash
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
+```
 
-3. **Run the frontend** (in a second terminal):
-   ```bash
-   cd frontend
-   npm install   # first run only
-   npm run dev   # http://localhost:5173
-   ```
+On macOS/Linux the interpreter is `.venv/bin/python`.
 
-**Architecture:** the browser talks to the Vite dev server, which proxies `/api` to FastAPI. Uploads are extracted (PDF/DOCX/TXT/MD), chunked, embedded locally with `all-MiniLM-L6-v2`, and stored in SQLite at `data/app.db`. A question is embedded, cosine-ranked against every chunk with NumPy, and the top chunks go to Groq through the `openai` SDK; the answer streams back over SSE. The chat also answers general questions: each answer is labelled `From your documents` (with `[n]` citations and a Sources panel) or `General knowledge` (no citations), so you can see when it left your library. The last 10 messages of a chat are sent as context, so follow-ups work. The first upload downloads ~90 MB of MiniLM once, and `sentence-transformers` makes the first request slow while it loads. `data/app.db` is disposable — delete it to reset, and re-upload after changing the embedding model. Backend tests: `cd backend && ../.venv/Scripts/python.exe -m pytest -q`.
+Copy `.env.example` to `.env` and add a key from
+[console.groq.com/keys](https://console.groq.com/keys):
 
-## Legacy Streamlit app
+```dotenv
+GROQ_API_KEY=your_key_here
+```
 
-The sections below describe `main.py`, the original single-file Streamlit app.
+Start the API from the repo root:
 
-## 🚀 Features
+```bash
+.venv/Scripts/python.exe -m uvicorn app.main:create_app --factory --app-dir backend --port 8000
+```
 
-- **Multi-Source Ingestion**: Fetch articles directly from URLs or upload local PDF and DOCX files.
-- **Local LLM Interaction**: Uses `google/flan-t5-large` for high-quality Question Answering and Summarization without external API costs.
-- **Intelligent Summarization**: Automatically generate detailed summaries for each ingested source.
-- **Analytics Dashboard**:
-  - **Sentiment Analysis**: Track the emotional tone (polarity) across all ingested articles.
-  - **Keyword Frequency**: Visualize the most common keywords present in the content (excluding common stop words).
-  - **Query History**: Keep track of questions asked during the session.
-- **Efficient Processing**: Splitting content into manageable chunks for better context handling.
+Start the UI in a second terminal:
 
-## 🛠️ Installation
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-1. **Clone the repository**:
-   ```bash
-   git clone <repository-url>
-   cd "News Research Tool"
-   ```
+Open http://localhost:5173. The Vite dev server proxies `/api` to `127.0.0.1:8000`.
 
-2. **Set up a virtual environment** (Optional but recommended):
-   ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows use `.venv\Scripts\activate`
-   ```
+## Tests
 
-3. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+```bash
+cd backend && ../.venv/Scripts/python.exe -m pytest -q   # 60 tests, offline
+cd frontend && npm run build && npm run lint
+```
 
-4. **Environment Variables**:
-   Create a `.env` file in the root directory (though currently using local models, it's good practice for extensions).
-   ```bash
-   # Optional if adding OpenAI support later
-   OPENAI_API_KEY=your_api_key_here
-   ```
+## Project structure
 
-## 📖 Usage
+```
+backend/app/       FastAPI app: config, db, extraction, chunking, embeddings, retrieval, prompt, routes
+backend/tests/     pytest suite (offline: no Groq call, no model download)
+frontend/src/      React app: api client, chat shell, uploads, sources
+data/app.db        SQLite database (git-ignored, disposable)
+```
 
-1. **Launch the application**:
-   ```bash
-   streamlit run main.py
-   ```
+## How it works
 
-2. **Navigation**: Use the sidebar to switch between pages:
-   - **Article Ingestion**: Paste URLs (one per line) or upload PDF/DOCX files. Click **Fetch and Process Content** to load them.
-   - **Q&A and Summaries**: Type a question to find answers across all sources or click **Summarize All Articles** for quick insights.
-   - **Analytics Dashboard**: View metrics, sentiment trends, and keyword visualizations.
-
-## 📂 Project Structure
-
-- `main.py`: The primary Streamlit application containing UI logic and LLM pipelines.
-- `requirements.txt`: Project dependencies.
-- `Documentation/`: Additional project notes.
-- `Screenshots/`: Visual guides of the interface.
-- `faiss_store_hf/`: Local storage for vector indices (if enabled).
-
----
-*Developed for efficient news research and financial analysis.*
+An upload is extracted to text, split into ~900-character chunks, embedded with a local
+MiniLM model, and stored as float32 vectors in SQLite. A question is embedded the same way
+and cosine-ranked against every chunk with NumPy; the top five become context for Groq,
+which streams back an answer over SSE. An answer that cites a supplied chunk is recorded as
+`documents` and keeps its Sources; one that does not is recorded as `general` and shows no
+sources. The first upload downloads ~90 MB of MiniLM once. `data/app.db` is disposable:
+delete it to reset, and re-upload after changing the embedding model.
