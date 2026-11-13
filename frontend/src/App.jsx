@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { createChat, listChats, listDocuments } from './api'
 import ChatWindow from './components/ChatWindow'
 import Sidebar from './components/Sidebar'
@@ -9,17 +9,13 @@ export default function App() {
   const [documents, setDocuments] = useState([])
   const [bootError, setBootError] = useState(null)
   const [actionError, setActionError] = useState(null)
-  // StrictMode mounts, unmounts and remounts: guard so a double-run of the
-  // boot effect can never create two chats.
-  const booted = useRef(false)
 
   // Derive the active id so deleting the selected chat can never strand us.
   const activeChatId = chats.some((c) => c.id === selectedId) ? selectedId : (chats[0]?.id ?? null)
   const activeChat = chats.find((c) => c.id === activeChatId)
 
+  // StrictMode runs the effect twice in dev; the cancelled flag discards the first run.
   useEffect(() => {
-    if (booted.current) return
-    booted.current = true
     let cancelled = false
     ;(async () => {
       try {

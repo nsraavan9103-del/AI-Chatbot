@@ -1,4 +1,4 @@
-// Types mirror backend/app/schemas.py exactly: same names, same fields.
+// Types mirror backend/app/schemas.py (plus the upload payload in routes/documents.py); StreamCallbacks is frontend-only.
 
 /**
  * @typedef {Object} DocumentOut
