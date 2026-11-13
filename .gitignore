@@ -2,8 +2,6 @@
 /*
 # Except these core project files
 !/README.md
-!/main.py
-!/requirements.txt
 !/.gitignore
 !/.env.example
 !/backend/
