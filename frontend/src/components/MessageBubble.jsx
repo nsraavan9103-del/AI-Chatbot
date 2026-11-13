@@ -1,7 +1,6 @@
-import type { MessageOut } from '../api'
 import Sources from './Sources'
 
-export default function MessageBubble({ message }: { message: MessageOut }) {
+export default function MessageBubble({ message }) {
   if (message.role === 'user') {
     return (
       <div className="message-row user">

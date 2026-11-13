@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { createChat, listChats, listDocuments, type ChatOut, type DocumentOut } from './api'
+import { createChat, listChats, listDocuments } from './api'
 import ChatWindow from './components/ChatWindow'
 import Sidebar from './components/Sidebar'
 
 export default function App() {
-  const [chats, setChats] = useState<ChatOut[]>([])
-  const [selectedId, setSelectedId] = useState<number | null>(null)
-  const [documents, setDocuments] = useState<DocumentOut[]>([])
-  const [bootError, setBootError] = useState<string | null>(null)
-  const [actionError, setActionError] = useState<string | null>(null)
+  const [chats, setChats] = useState([])
+  const [selectedId, setSelectedId] = useState(null)
+  const [documents, setDocuments] = useState([])
+  const [bootError, setBootError] = useState(null)
+  const [actionError, setActionError] = useState(null)
   // StrictMode mounts, unmounts and remounts: guard so a double-run of the
   // boot effect can never create two chats.
   const booted = useRef(false)
@@ -35,7 +35,7 @@ export default function App() {
           setChats(chatList)
           setSelectedId(chatList[0].id)
         }
-      } catch (err: unknown) {
+      } catch (err) {
         if (!cancelled) {
           setBootError(
             err instanceof Error ? err.message : 'Could not reach the server. Is the backend running?',
@@ -62,7 +62,7 @@ export default function App() {
       setActionError(null)
       setChats((prev) => [created, ...prev])
       setSelectedId(created.id)
-    } catch (err: unknown) {
+    } catch (err) {
       setActionError(err instanceof Error ? err.message : 'Could not create a chat.')
     }
   }

@@ -1,24 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { getMessages, streamMessage, type MessageOut, type SourceOut } from '../api'
+import { getMessages, streamMessage } from '../api'
 import MessageBubble from './MessageBubble'
 
-type Props = {
-  chatId: number | null
-  chatTitle: string
-  onChatUpdated: () => void
-}
-
-export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) {
-  const [messages, setMessages] = useState<MessageOut[]>([])
+export default function ChatWindow({ chatId, chatTitle, onChatUpdated }) {
+  const [messages, setMessages] = useState([])
   // Fresh per chat: App remounts this component via key={chatId} on every
   // chat switch, so the initial loading/error values are always correct and
   // the fetch effect below never needs synchronous setState calls.
   const [loading, setLoading] = useState(true)
   const [streaming, setStreaming] = useState(false)
   const [draft, setDraft] = useState('')
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState(null)
   const [announcement, setAnnouncement] = useState('')
-  const listRef = useRef<HTMLDivElement>(null)
+  const listRef = useRef(null)
   const nextTempId = useRef(-1)
 
   useEffect(() => {
@@ -28,7 +22,7 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
       .then((loaded) => {
         if (!cancelled) setMessages(loaded)
       })
-      .catch((err: unknown) => {
+      .catch((err) => {
         if (!cancelled) setError(err instanceof Error ? err.message : 'Could not load messages.')
       })
       .finally(() => {
@@ -60,10 +54,10 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
     ])
     setStreaming(true)
 
-    const patchAssistant = (fn: (m: MessageOut) => MessageOut) =>
+    const patchAssistant = (fn) =>
       setMessages((prev) => prev.map((m) => (m.id === assistantId ? fn(m) : m)))
 
-    const failSend = (message: string) => {
+    const failSend = (message) => {
       const text = message || 'Something went wrong.'
       patchAssistant((m) => ({ ...m, content: text }))
       setError(text)
@@ -77,9 +71,9 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
       let settled = false
       try {
         await streamMessage(chatId, content, {
-          onSources: (sources: SourceOut[]) =>
+          onSources: (sources) =>
             patchAssistant((m) => ({ ...m, sources })),
-          onToken: (text: string) =>
+          onToken: (text) =>
             patchAssistant((m) => ({ ...m, content: m.content + text })),
           onDone: () => {
             settled = true
@@ -92,12 +86,12 @@ export default function ChatWindow({ chatId, chatTitle, onChatUpdated }: Props) 
                 // Keep the streamed text if the reload fails.
               })
           },
-          onError: (message: string) => {
+          onError: (message) => {
             settled = true
             failSend(message)
           },
         })
-      } catch (err: unknown) {
+      } catch (err) {
         settled = true
         failSend(err instanceof Error ? err.message : 'Something went wrong.')
       } finally {

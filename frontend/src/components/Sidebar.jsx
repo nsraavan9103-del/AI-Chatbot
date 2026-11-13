@@ -1,16 +1,6 @@
 import { useState } from 'react'
-import { deleteChat, deleteDocument, listDocuments, type ChatOut, type DocumentOut } from '../api'
+import { deleteChat, deleteDocument, listDocuments } from '../api'
 import UploadButton from './UploadButton'
-
-type Props = {
-  chats: ChatOut[]
-  activeChatId: number | null
-  documents: DocumentOut[]
-  onSelectChat: (id: number) => void
-  onNewChat: () => void
-  onChatsChange: (chats: ChatOut[]) => void
-  onDocumentsChange: (documents: DocumentOut[]) => void
-}
 
 export default function Sidebar({
   chats,
@@ -20,10 +10,10 @@ export default function Sidebar({
   onNewChat,
   onChatsChange,
   onDocumentsChange,
-}: Props) {
-  const [uploadErrors, setUploadErrors] = useState<{ filename: string; error: string }[]>([])
-  const [docError, setDocError] = useState<string | null>(null)
-  const [chatError, setChatError] = useState<string | null>(null)
+}) {
+  const [uploadErrors, setUploadErrors] = useState([])
+  const [docError, setDocError] = useState(null)
+  const [chatError, setChatError] = useState(null)
 
   const refreshDocuments = async () => {
     try {
@@ -33,7 +23,7 @@ export default function Sidebar({
     }
   }
 
-  const handleDeleteChat = async (id: number) => {
+  const handleDeleteChat = async (id) => {
     const remaining = chats.filter((c) => c.id !== id)
     setChatError(null)
     try {
@@ -45,7 +35,7 @@ export default function Sidebar({
     }
   }
 
-  const handleDeleteDocument = async (doc: DocumentOut) => {
+  const handleDeleteDocument = async (doc) => {
     if (!window.confirm(`Delete "${doc.filename}" and its ${doc.chunk_count} chunks?`)) return
     setDocError(null)
     try {

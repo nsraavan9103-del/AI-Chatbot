@@ -1,6 +1,4 @@
-import type { SourceOut } from '../api'
-
-export default function Sources({ sources }: { sources: SourceOut[] }) {
+export default function Sources({ sources }) {
   if (sources.length === 0) return null
   return (
     <details className="sources">

@@ -1,16 +1,11 @@
 import { useRef, useState } from 'react'
-import { uploadFiles, type DocumentOut } from '../api'
+import { uploadFiles } from '../api'
 
-type Props = {
-  onUploaded: (documents: DocumentOut[]) => void
-  onErrors: (errors: { filename: string; error: string }[]) => void
-}
-
-export default function UploadButton({ onUploaded, onErrors }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null)
+export default function UploadButton({ onUploaded, onErrors }) {
+  const inputRef = useRef(null)
   const [uploading, setUploading] = useState(false)
 
-  const handleChange = async (files: FileList | null) => {
+  const handleChange = async (files) => {
     if (!files || files.length === 0 || uploading) return
     setUploading(true)
     try {
